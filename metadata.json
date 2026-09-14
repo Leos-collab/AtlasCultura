@@ -1,0 +1,6 @@
+{
+  "name": "Atlas Cultural",
+  "description": "Linha do tempo da sua vida cultural, mapa visual de experiências e descobertas com amigos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
