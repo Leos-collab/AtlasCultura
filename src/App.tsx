@@ -222,10 +222,23 @@ export default function App() {
   // Add / Edit handler
   const handleSaveExperience = (expData: Partial<CulturalExperience>) => {
     if (expData.id) {
-      // Edit existing
-      setExperiences(prev =>
-        prev.map(item => (item.id === expData.id ? ({ ...item, ...expData } as CulturalExperience) : item))
-      );
+      // Edit existing or move between lists
+      if (expData.status === 'wishlist') {
+        setWishlist(prev => {
+          const exists = prev.some(w => w.id === expData.id);
+          if (exists) return prev.map(w => (w.id === expData.id ? ({ ...w, ...expData } as CulturalExperience) : w));
+          return [{ ...expData } as CulturalExperience, ...prev];
+        });
+        setExperiences(prev => prev.filter(e => e.id !== expData.id));
+      } else {
+        setExperiences(prev => {
+          const exists = prev.some(e => e.id === expData.id);
+          if (exists) return prev.map(e => (e.id === expData.id ? ({ ...e, ...expData } as CulturalExperience) : e));
+          return [{ ...expData } as CulturalExperience, ...prev];
+        });
+        setWishlist(prev => prev.filter(w => w.id !== expData.id));
+      }
+
       if (detailExperience && detailExperience.id === expData.id) {
         setDetailExperience({ ...detailExperience, ...expData } as CulturalExperience);
       }
@@ -332,7 +345,6 @@ export default function App() {
 
   // Mark wishlist item as completed
   const handleMarkAsCompleted = (wishItem: CulturalExperience) => {
-    setWishlist(prev => prev.filter(w => w.id !== wishItem.id));
     setEditingExperience({
       ...wishItem,
       status: 'completed',
