@@ -1,19 +1,20 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  Sparkles, 
-  Bookmark, 
-  Check, 
-  MapPin, 
-  RefreshCw, 
-  Bot, 
-  Send, 
-  Compass, 
+import {
+  Sparkles,
+  Bookmark,
+  Check,
+  MapPin,
+  RefreshCw,
+  Bot,
+  Send,
+  Compass,
   TrendingUp,
   Award,
   Layers
 } from 'lucide-react';
 import { SmartRecommendation, CulturalExperience, ExperienceCategory } from '../types';
 import { CATEGORIES_CONFIG } from '../data/categories';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { CategoryIcon } from './CategoryIcon';
 import { SafeImage } from './SafeImage';
 
@@ -126,27 +127,84 @@ export const FriendsDiscoveryView: React.FC<FriendsDiscoveryViewProps> = ({
     setIsBotThinking(true);
 
     try {
-      const res = await fetch('/api/ai-curator', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userLogs: userLogs.map(l => ({
-            title: l.title,
-            category: l.category,
-            vibeTag: l.vibeTag,
-            rating: l.rating
-          })),
-          preferences: query
-        })
-      });
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error("Chave de API (VITE_GEMINI_API_KEY) não encontrada no ambiente.");
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+
+      const modelsToTry = [
+        "gemini-flash-latest", 
+        "gemini-3.5-flash", 
+        "gemini-3.1-pro-preview",
+        "gemini-3.5-flash-lite"
+      ];
+      let result;
+
+      const systemPrompt = `
+Você é o "Bot Curador Atlas", um assistente de inteligência artificial do aplicativo Atlas Cultural.
+Sua missão é atuar como um curador refinado, recomendando experiências e também respondendo dúvidas ou fornecendo informações sobre eventos, shows, locais, museus, etc.
+
+O usuário perguntou/pediu: "${query}"
+
+Aqui está um resumo das preferências culturais recentes do usuário:
+${JSON.stringify(userLogs.map(l => ({ title: l.title, category: l.category, vibeTag: l.vibeTag, rating: l.rating })))}
+
+Instruções:
+1. Responda à pergunta do usuário de forma completa, amigável e informativa na propriedade "replyText". Se o usuário pediu informações sobre um show, evento ou local específico, forneça os detalhes relevantes aí.
+2. Se o usuário pediu recomendações, ou se fizer sentido sugerir locais reais relacionados ao que foi perguntado, adicione de 1 a 4 locais na lista "recommendations".
+3. Se a pergunta for puramente informativa e não houver locais para recomendar, você pode deixar a lista "recommendations" vazia ([]).
+
+A resposta **DEVE** estar em formato JSON válido, respeitando exatamente a seguinte estrutura, sem nenhum texto adicional fora do JSON:
+
+{
+  "replyText": "Sua resposta informativa e amigável para a pergunta do usuário. Pode ser um parágrafo mais longo se necessário.",
+  "recommendations": [
+    {
+      "title": "Nome do Lugar ou Experiência",
+      "category": "museu" | "show" | "filme" | "restaurante" | "peça" | "viagem" | "livro" | "outro",
+      "matchReason": "Uma frase explicando por que isso combina com o usuário ou com a pergunta.",
+      "suggestedAction": "Dica prática, ex: Melhor ir às quintas-feiras.",
+      "highlight": "Destaque principal do lugar.",
+      "venue": "Endereço ou Bairro",
+      "imageUrl": "URL de uma foto inspiradora do Unsplash. Ex: https://images.unsplash.com/photo-1545989253-02cc26577f88?auto=format&fit=crop&w=800&q=80",
+      "tags": ["Tag1", "Tag2", "Tag3"]
+    }
+  ]
+}
+`;
+
+      let lastError;
+      for (const modelName of modelsToTry) {
+        try {
+          const model = genAI.getGenerativeModel({
+            model: modelName,
+            generationConfig: { responseMimeType: "application/json" }
+          });
+          result = await model.generateContent(systemPrompt);
+          break; // Sucesso
+        } catch (e: any) {
+          lastError = e;
+          console.warn(`Tentativa com ${modelName} falhou:`, e.message);
+        }
+      }
+
+      if (!result) {
+        throw lastError || new Error("Todos os modelos falharam.");
+      }
+
+      const response = await result.response;
+      const text = response.text();
+
+      const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const data = JSON.parse(cleanedText);
 
       let recs: SmartRecommendation[] = [];
       let replyMsg = `Com base na curadoria de espaços para "${query}", selecionei estes lugares especiais:`;
-      if (res.ok) {
-        const data = await res.json();
-        if (data.replyText) replyMsg = data.replyText;
-        if (data.recommendations && Array.isArray(data.recommendations)) recs = data.recommendations;
-      }
+
+      if (data.replyText) replyMsg = data.replyText;
+      if (data.recommendations && Array.isArray(data.recommendations)) recs = data.recommendations;
 
       if (!recs || recs.length === 0) {
         recs = [
@@ -182,24 +240,14 @@ export const FriendsDiscoveryView: React.FC<FriendsDiscoveryViewProps> = ({
       };
 
       setBotMessages(prev => [...prev, botReply]);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro no Bot Curador:', err);
+      const errorMessage = err.message || 'Erro desconhecido ao processar a requisição.';
       const fallbackReply: BotChatMessage = {
         id: `bot-${Date.now()}`,
         sender: 'bot',
-        text: `Mapeei estes espaços culturais que combinam com seu interesse por "${query}":`,
-        recommendations: [
-          {
-            title: "Bar dos Arcos - Subsolo do Teatro Municipal",
-            category: "restaurante",
-            matchReason: "Localizado sob os arcos de pedra originais de 1911, um dos pontos mais fascinantes da cidade.",
-            suggestedAction: "Sentar nos balcões iluminados de vidro e pedir drinques autorais inspirados em óperas.",
-            highlight: "Arquitetura monumental de pedra e ambiente intimista",
-            venue: "Theatro Municipal de São Paulo",
-            imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80",
-            tags: ["História", "Coquetelaria", "Patrimônio"]
-          }
-        ],
+        text: `Desculpe, encontrei um erro ao processar sua solicitação: ${errorMessage}. Certifique-se de que sua Chave de API do Gemini é válida e de que a resposta gerada não excedeu o formato esperado.`,
+        recommendations: [],
         timestamp: 'Agora'
       };
       setBotMessages(prev => [...prev, fallbackReply]);
@@ -251,7 +299,7 @@ export const FriendsDiscoveryView: React.FC<FriendsDiscoveryViewProps> = ({
         {/* Visual Bar Distribution Chart */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {placeAffinities.map((item, idx) => (
-            <div 
+            <div
               key={idx}
               className="p-3.5 rounded-2xl bg-stone-50 dark:bg-stone-950/60 border border-stone-200/80 dark:border-stone-800 hover:border-amber-400/50 transition-colors"
             >
@@ -267,9 +315,9 @@ export const FriendsDiscoveryView: React.FC<FriendsDiscoveryViewProps> = ({
 
               {/* Progress visual bar */}
               <div className="w-full h-2.5 bg-stone-200 dark:bg-stone-800 rounded-full overflow-hidden mb-1.5">
-                <div 
+                <div
                   className="h-full rounded-full transition-all duration-500"
-                  style={{ 
+                  style={{
                     width: `${item.score}%`,
                     backgroundColor: item.color
                   }}
@@ -286,7 +334,7 @@ export const FriendsDiscoveryView: React.FC<FriendsDiscoveryViewProps> = ({
       </div>
 
       {/* BOT CURADOR DE LUGARES & CARDS COM IMAGEM REGISTRÁVEL EM DESEJOS */}
-      <div 
+      <div
         id="bot-curador-section"
         className="rounded-3xl border border-amber-300/80 dark:border-amber-500/30 bg-gradient-to-br from-amber-50/90 via-stone-50 to-amber-100/40 dark:from-stone-900 dark:via-stone-900 dark:to-amber-950/30 p-5 sm:p-6 shadow-sm relative overflow-hidden transition-colors"
       >
@@ -335,11 +383,10 @@ export const FriendsDiscoveryView: React.FC<FriendsDiscoveryViewProps> = ({
               className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
             >
               <div
-                className={`max-w-3xl rounded-2xl p-4 text-xs leading-relaxed ${
-                  msg.sender === 'user'
-                    ? 'bg-stone-900 dark:bg-amber-400 text-amber-200 dark:text-stone-950 font-medium rounded-tr-xs shadow-xs'
-                    : 'bg-white dark:bg-stone-950/90 text-stone-800 dark:text-stone-200 border border-stone-200/80 dark:border-stone-800 rounded-tl-xs shadow-xs w-full'
-                }`}
+                className={`max-w-3xl rounded-2xl p-4 text-xs leading-relaxed ${msg.sender === 'user'
+                  ? 'bg-stone-900 dark:bg-amber-400 text-amber-200 dark:text-stone-950 font-medium rounded-tr-xs shadow-xs'
+                  : 'bg-white dark:bg-stone-950/90 text-stone-800 dark:text-stone-200 border border-stone-200/80 dark:border-stone-800 rounded-tl-xs shadow-xs w-full'
+                  }`}
               >
                 <div className="flex items-center gap-1.5 mb-1.5 text-[10px] opacity-70 font-semibold uppercase tracking-wider">
                   {msg.sender === 'user' ? (
@@ -405,8 +452,8 @@ export const FriendsDiscoveryView: React.FC<FriendsDiscoveryViewProps> = ({
                             {rec.tags && rec.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1 mb-2.5">
                                 {rec.tags.map((tag, tIdx) => (
-                                  <span 
-                                    key={tIdx} 
+                                  <span
+                                    key={tIdx}
                                     className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200/70 dark:border-amber-900/50"
                                   >
                                     #{tag}
@@ -442,11 +489,10 @@ export const FriendsDiscoveryView: React.FC<FriendsDiscoveryViewProps> = ({
                               });
                               setSavedBotRecKeys(prev => ({ ...prev, [recKey]: true }));
                             }}
-                            className={`w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                              isSaved
-                                ? 'bg-emerald-700 dark:bg-emerald-600 text-white cursor-default shadow-xs'
-                                : 'bg-stone-900 dark:bg-amber-400 hover:bg-stone-800 dark:hover:bg-amber-300 text-amber-300 dark:text-stone-950 shadow-xs active:scale-98'
-                            }`}
+                            className={`w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${isSaved
+                              ? 'bg-emerald-700 dark:bg-emerald-600 text-white cursor-default shadow-xs'
+                              : 'bg-stone-900 dark:bg-amber-400 hover:bg-stone-800 dark:hover:bg-amber-300 text-amber-300 dark:text-stone-950 shadow-xs active:scale-98'
+                              }`}
                           >
                             {isSaved ? (
                               <>
