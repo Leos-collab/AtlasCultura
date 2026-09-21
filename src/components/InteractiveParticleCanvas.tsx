@@ -84,7 +84,7 @@ export const InteractiveParticleCanvas: React.FC<InteractiveParticleCanvasProps>
       const isDark = theme === 'dark';
 
       // 1. Draw Subtle Architectural Grid
-      ctx.strokeStyle = isDark ? 'rgba(245, 158, 11, 0.03)' : 'rgba(217, 119, 6, 0.04)';
+      ctx.strokeStyle = isDark ? 'rgba(245, 158, 11, 0.03)' : 'rgba(124, 58, 237, 0.05)';
       ctx.lineWidth = 0.5;
       const gridStep = 80;
 
@@ -106,8 +106,8 @@ export const InteractiveParticleCanvas: React.FC<InteractiveParticleCanvasProps>
           mouse.x, mouse.y, 380
         );
 
-        const centerColor = isDark ? 'rgba(245, 158, 11, 0.08)' : 'rgba(217, 119, 6, 0.06)';
-        const midColor = isDark ? 'rgba(251, 191, 36, 0.025)' : 'rgba(245, 158, 11, 0.02)';
+        const centerColor = isDark ? 'rgba(245, 158, 11, 0.08)' : 'rgba(109, 40, 217, 0.08)';
+        const midColor = isDark ? 'rgba(251, 191, 36, 0.025)' : 'rgba(139, 92, 246, 0.03)';
 
         spotlight.addColorStop(0, centerColor);
         spotlight.addColorStop(0.5, midColor);
@@ -139,7 +139,7 @@ export const InteractiveParticleCanvas: React.FC<InteractiveParticleCanvasProps>
             const linkAlpha = (1 - dist / maxLinkDist) * (isDark ? 0.12 : 0.15);
             ctx.strokeStyle = isDark
               ? `rgba(245, 158, 11, ${linkAlpha})`
-              : `rgba(217, 119, 6, ${linkAlpha})`;
+              : `rgba(124, 58, 237, ${linkAlpha})`;
             ctx.lineWidth = 0.75;
             ctx.beginPath();
             ctx.moveTo(n.x, n.y);
@@ -156,7 +156,7 @@ export const InteractiveParticleCanvas: React.FC<InteractiveParticleCanvasProps>
           const mouseLinkAlpha = (1 - distToMouse / mouseLinkDist) * (isDark ? 0.28 : 0.25);
           ctx.strokeStyle = isDark
             ? `rgba(251, 191, 36, ${mouseLinkAlpha})`
-            : `rgba(245, 158, 11, ${mouseLinkAlpha})`;
+            : `rgba(139, 92, 246, ${mouseLinkAlpha})`;
           ctx.lineWidth = 0.85;
           ctx.beginPath();
           ctx.moveTo(n.x, n.y);
@@ -168,7 +168,7 @@ export const InteractiveParticleCanvas: React.FC<InteractiveParticleCanvasProps>
         const nodeAlpha = Math.min(0.75, n.alpha + (distToMouse < 180 ? (1 - distToMouse / 180) * 0.35 : 0));
         ctx.fillStyle = isDark
           ? `rgba(245, 158, 11, ${nodeAlpha})`
-          : `rgba(217, 119, 6, ${nodeAlpha})`;
+          : `rgba(109, 40, 217, ${nodeAlpha})`;
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.radius + (distToMouse < 140 ? 0.75 : 0), 0, Math.PI * 2);
         ctx.fill();

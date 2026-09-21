@@ -33,6 +33,7 @@ export interface UserProfile {
   bio?: string;
   favoriteCategories?: ExperienceCategory[];
   createdAt: number;
+  isPremium?: boolean;
 }
 
 export interface CulturalExperience {
@@ -108,4 +109,4 @@ export interface SmartRecommendation {
   venue?: string;
 }
 
-export type ActiveTab = 'timeline' | 'visual_map' | 'friends_discovery' | 'wishlist';
+export type ActiveTab = 'timeline' | 'visual_map' | 'friends_discovery' | 'wishlist' | 'subscription';

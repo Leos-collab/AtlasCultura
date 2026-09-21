@@ -17,7 +17,8 @@ import {
   Sliders, 
   Trash2, 
   RotateCw,
-  Hand
+  Hand,
+  Crown
 } from 'lucide-react';
 import { 
   CulturalExperience, 
@@ -38,6 +39,9 @@ interface AddExperienceModalProps {
   initialMode?: 'experience' | 'wishlist';
   theme?: 'light' | 'dark';
   currentYear?: number;
+  isPremium?: boolean;
+  totalExperienceCount?: number;
+  onGoToPlans?: () => void;
 }
 
 const SAMPLE_CATEGORY_IMAGES: Record<ExperienceCategory, string[]> = {
@@ -100,7 +104,10 @@ export const AddExperienceModal: React.FC<AddExperienceModalProps> = ({
   initialData,
   initialMode,
   theme = 'light',
-  currentYear
+  currentYear,
+  isPremium = false,
+  totalExperienceCount = 0,
+  onGoToPlans
 }) => {
   const isWishlistMode = initialMode === 'wishlist';
   const [isGoogleContactsOpen, setIsGoogleContactsOpen] = useState(false);
@@ -361,8 +368,50 @@ export const AddExperienceModal: React.FC<AddExperienceModalProps> = ({
     }
   };
 
+  const FREE_LIMIT = 5;
+  const isAtFreeLimit = !isPremium && !initialData && totalExperienceCount >= FREE_LIMIT;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs overflow-y-auto">
+      {isAtFreeLimit ? (
+        /* Free plan paywall gate */
+        <div
+          className={`relative w-full max-w-md rounded-3xl shadow-2xl border overflow-hidden p-8 text-center ${
+            theme === 'dark'
+              ? 'bg-stone-900 border-stone-800 text-stone-100'
+              : 'bg-[#efece6] border-stone-200 text-stone-900'
+          }`}
+          onClick={e => e.stopPropagation()}
+        >
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-1.5 rounded-full text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center mx-auto mb-4">
+            <Crown className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+          </div>
+          <h3 className="font-serif-title text-xl font-bold mb-2">Limite do Plano Gratuito</h3>
+          <p className="text-stone-500 dark:text-stone-400 text-sm mb-6">
+            Você atingiu o limite de <strong>{FREE_LIMIT} experiências</strong> do plano gratuito.
+            Faça upgrade para o <strong className="text-amber-600 dark:text-amber-400">Premium</strong> e registre sua vida cultural sem limites!
+          </p>
+          <button
+            onClick={() => { onClose(); onGoToPlans?.(); }}
+            className="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg"
+          >
+            <Crown className="w-4 h-4" />
+            Ver Planos Premium
+          </button>
+          <button
+            onClick={onClose}
+            className="mt-3 w-full py-2.5 rounded-xl text-stone-500 dark:text-stone-400 text-sm hover:text-stone-700 dark:hover:text-stone-200 transition-colors"
+          >
+            Voltar
+          </button>
+        </div>
+      ) : (
       <div 
         className="relative w-full max-w-2xl bg-white dark:bg-stone-900 dark:text-stone-100 rounded-3xl shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden my-auto max-h-[92vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -1134,6 +1183,7 @@ export const AddExperienceModal: React.FC<AddExperienceModalProps> = ({
           </div>
         </form>
       </div>
+      )}
 
       {/* Google Contacts Picker Modal */}
       <GoogleContactsModal

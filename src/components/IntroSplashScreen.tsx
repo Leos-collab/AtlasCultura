@@ -60,7 +60,7 @@ export const IntroSplashScreen: React.FC<IntroSplashScreenProps> = ({
       } ${
         isDark 
           ? 'bg-gradient-to-br from-[#0c0b0a] via-[#151311] to-[#121018] text-stone-100' 
-          : 'bg-gradient-to-br from-[#faf8f5] via-[#fff7ed] to-[#f0f4ff] text-stone-900'
+          : 'bg-gradient-to-br from-[#e8e4f2] via-[#e2daef] to-[#d6cde4] text-stone-900'
       }`}
     >
       {/* Background Interactive Canvas */}

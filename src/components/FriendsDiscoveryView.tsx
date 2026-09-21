@@ -21,6 +21,8 @@ import { SafeImage } from './SafeImage';
 interface FriendsDiscoveryViewProps {
   userLogs: CulturalExperience[];
   onAddToWishlist: (item: Partial<CulturalExperience>) => void;
+  isPremium?: boolean;
+  onGoToPlans?: () => void;
 }
 
 interface BotChatMessage {
@@ -40,8 +42,17 @@ const BOT_PRESET_PROMPTS = [
 
 export const FriendsDiscoveryView: React.FC<FriendsDiscoveryViewProps> = ({
   userLogs,
-  onAddToWishlist
+  onAddToWishlist,
+  isPremium = false,
+  onGoToPlans
 }) => {
+  const FREE_BOT_LIMIT = 2;
+  const [botQuestionsUsed, setBotQuestionsUsed] = React.useState<number>(() => {
+    try {
+      return parseInt(localStorage.getItem('atlas_cultural_bot_questions_v1') || '0', 10);
+    } catch { return 0; }
+  });
+  const isAtBotLimit = !isPremium && botQuestionsUsed >= FREE_BOT_LIMIT;
   const [botPrompt, setBotPrompt] = useState('');
   const [isBotThinking, setIsBotThinking] = useState(false);
   const [savedBotRecKeys, setSavedBotRecKeys] = useState<Record<string, boolean>>(() => {
@@ -148,6 +159,19 @@ export const FriendsDiscoveryView: React.FC<FriendsDiscoveryViewProps> = ({
     const query = (customText || botPrompt).trim();
     if (!query || isBotThinking) return;
 
+    // Enforce free plan limit
+    if (isAtBotLimit) {
+      const limitMsg: BotChatMessage = {
+        id: `bot-limit-${Date.now()}`,
+        sender: 'bot',
+        text: `Você atingiu o limite de ${FREE_BOT_LIMIT} consultas gratuitas ao Bot Curador. Assine o plano **Premium** para continuar explorando o mundo cultural sem limites! 🌟`,
+        timestamp: 'Agora',
+        recommendations: []
+      };
+      setBotMessages(prev => [...prev, limitMsg]);
+      return;
+    }
+
     const userMsg: BotChatMessage = {
       id: `user-${Date.now()}`,
       sender: 'user',
@@ -158,6 +182,13 @@ export const FriendsDiscoveryView: React.FC<FriendsDiscoveryViewProps> = ({
     setBotMessages(prev => [...prev, userMsg]);
     setBotPrompt('');
     setIsBotThinking(true);
+
+    // Increment question counter for free users
+    if (!isPremium) {
+      const newCount = botQuestionsUsed + 1;
+      setBotQuestionsUsed(newCount);
+      try { localStorage.setItem('atlas_cultural_bot_questions_v1', String(newCount)); } catch (e) {}
+    }
 
     try {
       const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;

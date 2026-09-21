@@ -13,6 +13,7 @@ import { NewYearModal } from './components/NewYearModal';
 import { WelcomeOnboardingModal } from './components/WelcomeOnboardingModal';
 import { WelcomeBackSplash } from './components/WelcomeBackSplash';
 import { InteractiveParticleCanvas } from './components/InteractiveParticleCanvas';
+import { SubscriptionView } from './components/SubscriptionView';
 import { 
   CulturalExperience, 
   FriendProfile, 
@@ -423,7 +424,7 @@ export default function App() {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 flex flex-col selection:bg-amber-200 selection:text-amber-900 relative overflow-hidden ${
-      theme === 'dark' ? 'bg-[#0f0e0d] text-stone-100' : 'bg-[#faf8f5] text-stone-900'
+      theme === 'dark' ? 'bg-[#0f0e0d] text-stone-100' : 'bg-[#e8e4f2] text-stone-900'
     }`}>
       {/* Global Interactive Constellation Canvas background for all screens */}
       <InteractiveParticleCanvas theme={theme} />
@@ -511,6 +512,8 @@ export default function App() {
           <FriendsDiscoveryView
             userLogs={experiences}
             onAddToWishlist={handleAddToWishlist}
+            isPremium={currentUser?.isPremium}
+            onGoToPlans={() => setActiveTab('subscription')}
           />
         )}
 
@@ -523,6 +526,20 @@ export default function App() {
               setEditingExperience(null);
               setAddModalInitialMode('wishlist');
               setIsAddModalOpen(true);
+            }}
+          />
+        )}
+
+        {activeTab === 'subscription' && currentUser && (
+          <SubscriptionView
+            currentUser={currentUser}
+            theme={theme}
+            onUpgrade={(upgraded) => {
+              setCurrentUser(upgraded);
+              try {
+                localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(upgraded));
+              } catch (e) {}
+              setActiveTab('timeline');
             }}
           />
         )}
@@ -564,6 +581,9 @@ export default function App() {
         initialMode={addModalInitialMode}
         theme={theme}
         currentYear={activeCycleYear}
+        isPremium={currentUser?.isPremium}
+        totalExperienceCount={experiences.filter(e => e.status === 'completed').length}
+        onGoToPlans={() => setActiveTab('subscription')}
       />
 
       {/* Detail Memory Modal */}

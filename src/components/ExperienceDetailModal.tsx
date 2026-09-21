@@ -72,7 +72,7 @@ export const ExperienceDetailModal: React.FC<ExperienceDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-950/80 backdrop-blur-xs overflow-y-auto animate-fadeIn">
-      <div className="bg-[#faf8f5] dark:bg-stone-900 border border-stone-300 dark:border-stone-800 text-stone-900 dark:text-stone-100 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden my-6 transition-colors">
+      <div className="bg-[#efece6] dark:bg-stone-900 border border-stone-300 dark:border-stone-800 text-stone-900 dark:text-stone-100 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden my-6 transition-colors">
         
         {/* Top Floating Actions */}
         <div className="p-4 flex items-center justify-between border-b border-stone-200 dark:border-stone-800 bg-stone-100/60 dark:bg-stone-950/50">

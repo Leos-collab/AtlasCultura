@@ -117,7 +117,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       avatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80`,
       bio: bio.trim(),
       favoriteCategories: selectedInterests,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      isPremium: finalName === 'Leonardo Estivalet' && password === 'leo1406'
     };
     onLogin(user, isNew);
   };
@@ -131,7 +132,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
       bio: 'Criador e Administrador do Atlas Cultural.',
       favoriteCategories: ['show', 'museu', 'livro', 'filme'],
-      createdAt: 1700000000000
+      createdAt: 1700000000000,
+      isPremium: true
     };
     onLogin(adminUser, false);
   };
@@ -144,7 +146,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       avatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80`,
       bio: 'Apaixonado por música ao vivo, cinema autoral e boas leituras.',
       favoriteCategories: ['show', 'museu', 'livro', 'filme'],
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      isPremium: false
     };
     onLogin(user, false);
   };
@@ -154,7 +157,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       onMouseMove={handleMouseMove}
       className={`min-h-screen flex flex-col justify-between transition-colors duration-500 relative overflow-hidden animate-gradient ${theme === 'dark'
           ? 'bg-gradient-to-br from-[#0f0e0d] via-[#1a1714] to-[#14121a] text-stone-100'
-          : 'bg-gradient-to-br from-[#faf8f5] via-[#fff5e6] to-[#f0f4ff] text-stone-900'
+          : 'bg-gradient-to-br from-[#e8e4f2] via-[#e2daef] to-[#d6cde4] text-stone-900'
         }`}
     >
 

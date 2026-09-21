@@ -14,7 +14,8 @@ import {
   Sun, 
   Moon, 
   LogOut, 
-  User 
+  User,
+  Crown
 } from 'lucide-react';
 import { ActiveTab, UserProfile } from '../types';
 
@@ -54,7 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeCycleYear = 2026
 }) => {
   return (
-    <header className="sticky top-0 z-40 bg-[#faf8f5]/95 dark:bg-[#0f0e0d]/95 backdrop-blur-md border-b border-stone-200 dark:border-stone-800 transition-colors">
+    <header className="sticky top-0 z-40 bg-[#e8e4f2]/95 dark:bg-[#0f0e0d]/95 backdrop-blur-md border-b border-stone-200 dark:border-stone-800 transition-colors">
       {/* Top micro banner with cultural pulse */}
       <div className="bg-stone-900 dark:bg-stone-950 text-stone-200 text-xs px-4 py-1.5 flex items-center justify-between font-medium border-b border-stone-800">
         <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
@@ -163,6 +164,25 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* User Profile & Logout */}
             {currentUser && (
               <div className="flex items-center pl-1 sm:pl-2 border-l border-stone-200 dark:border-stone-800 gap-2">
+                {!currentUser.isPremium && (
+                  <button
+                    onClick={() => setActiveTab('subscription')}
+                    className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs font-bold hover:bg-amber-200 dark:hover:bg-amber-800/60 transition-colors shadow-xs"
+                    title="Fazer upgrade para Premium"
+                  >
+                    <Crown className="w-3.5 h-3.5" />
+                    <span>Free</span>
+                  </button>
+                )}
+                {currentUser.isPremium && (
+                  <div 
+                    className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-stone-900 dark:bg-stone-800 text-amber-400 text-xs font-bold shadow-xs cursor-default"
+                    title="Usuário Premium"
+                  >
+                    <Crown className="w-3.5 h-3.5 text-amber-400" />
+                    <span>PRO</span>
+                  </div>
+                )}
                 <button
                   type="button"
                   id="btn-user-profile"
@@ -243,6 +263,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Bookmark className="w-4 h-4" />
               <span>Quero Viver / Desejos</span>
+            </button>
+
+            <button
+              id="nav-tab-subscription"
+              onClick={() => setActiveTab('subscription')}
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all cursor-pointer ${
+                activeTab === 'subscription'
+                  ? 'bg-amber-500 text-stone-950 shadow-xs'
+                  : 'text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30'
+              }`}
+            >
+              <Crown className="w-4 h-4" />
+              <span>Planos Premium</span>
             </button>
           </nav>
         </div>
