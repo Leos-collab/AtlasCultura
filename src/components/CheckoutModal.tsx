@@ -59,21 +59,33 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   }`;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-      <div className={`w-full max-w-md rounded-3xl shadow-2xl overflow-hidden transition-colors ${
-        theme === 'dark' ? 'bg-stone-900 text-stone-100' : 'bg-[#efece6] text-stone-900'
-      }`}>
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn"
+      onClick={onClose}
+    >
+      <div 
+        className={`relative w-full max-w-md rounded-3xl shadow-2xl overflow-hidden transition-colors ${
+          theme === 'dark' ? 'bg-stone-900 text-stone-100' : 'bg-[#efece6] text-stone-900'
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header */}
         <div className="relative bg-gradient-to-br from-amber-500 to-amber-600 p-6">
-          <div className="absolute inset-0 bg-stone-900/20" />
+          <div className="absolute inset-0 bg-stone-900/20 pointer-events-none" />
           <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors z-10"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
+            aria-label="Fechar"
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/35 active:scale-95 text-white transition-all z-50 cursor-pointer flex items-center justify-center shadow-sm"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5 pointer-events-none" />
           </button>
-          <div className="relative z-10">
+          <div className="relative z-10 pr-10">
             <div className="flex items-center gap-2 mb-1">
               <Crown className="w-5 h-5 text-white" />
               <span className="text-white/90 text-sm font-bold uppercase tracking-widest">Atlas Cultural Premium</span>
