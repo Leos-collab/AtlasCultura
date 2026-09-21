@@ -148,14 +148,17 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
     setSelectedCategory(category);
   };
 
-  // Center coordinates
+  // Center coordinates & banner visibility check
+  const isBannerVisible = completedForYear.length === 0;
   const centerX = containerDimensions.width / 2;
-  const centerY = containerDimensions.height / 2;
+  const centerY = (containerDimensions.height / 2) + (isBannerVisible ? 34 : 0);
 
-  // Responsive radius
+  // Responsive radius adjusted to guarantee zero overlap with top banner
   const isMobile = containerDimensions.width < 640;
-  const radiusX = isMobile ? Math.min(centerX - 55, 145) : Math.min(centerX - 110, 270);
-  const radiusY = isMobile ? Math.min(centerY - 75, 190) : Math.min(centerY - 85, 215);
+  const radiusX = isMobile ? Math.min(centerX - 55, 140) : Math.min(centerX - 110, 260);
+  const radiusY = isMobile 
+    ? Math.min(centerY - 95, 160) 
+    : Math.min(centerY - 115, isBannerVisible ? 185 : 215);
 
   // Selected category items
   const activeCategoryItems = useMemo(() => {
@@ -259,7 +262,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
       <div 
         ref={containerRef}
         onWheel={handleWheel}
-        className="relative w-full h-[540px] sm:h-[620px] rounded-3xl border border-stone-200 dark:border-stone-800 overflow-hidden select-none bg-stone-50 dark:bg-stone-950 transition-colors shadow-inner"
+        className="relative w-full h-[580px] sm:h-[660px] rounded-3xl border border-stone-200 dark:border-stone-800 overflow-hidden select-none bg-stone-50 dark:bg-stone-950 transition-colors shadow-inner"
         style={{
           backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
           backgroundSize: '24px 24px',

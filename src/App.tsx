@@ -8,9 +8,11 @@ import { AddExperienceModal } from './components/AddExperienceModal';
 import { ExperienceDetailModal } from './components/ExperienceDetailModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AuthScreen } from './components/AuthScreen';
+import { IntroSplashScreen } from './components/IntroSplashScreen';
 import { NewYearModal } from './components/NewYearModal';
 import { WelcomeOnboardingModal } from './components/WelcomeOnboardingModal';
 import { WelcomeBackSplash } from './components/WelcomeBackSplash';
+import { InteractiveParticleCanvas } from './components/InteractiveParticleCanvas';
 import { 
   CulturalExperience, 
   FriendProfile, 
@@ -101,6 +103,7 @@ export default function App() {
   });
 
   // UI Navigation states
+  const [hasSeenIntro, setHasSeenIntro] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>('timeline');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -396,21 +399,35 @@ export default function App() {
     setActiveTab('visual_map');
   };
 
-  // USER REQUEST: "Antes de abir esta interface faça uma outra de login/pimeiro acesso"
+  // USER REQUEST: "Antes de vir para esta tela, quero que voce coloque uma outra tela animada contendo o nome do site"
   if (!currentUser) {
+    if (!hasSeenIntro) {
+      return (
+        <IntroSplashScreen
+          onEnter={() => setHasSeenIntro(true)}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
+      );
+    }
+
     return (
       <AuthScreen
         onLogin={handleLogin}
         theme={theme}
         onToggleTheme={toggleTheme}
+        onBackToIntro={() => setHasSeenIntro(false)}
       />
     );
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 flex flex-col selection:bg-amber-200 selection:text-amber-900 ${
+    <div className={`min-h-screen transition-colors duration-300 flex flex-col selection:bg-amber-200 selection:text-amber-900 relative overflow-hidden ${
       theme === 'dark' ? 'bg-[#0f0e0d] text-stone-100' : 'bg-[#faf8f5] text-stone-900'
     }`}>
+      {/* Global Interactive Constellation Canvas background for all screens */}
+      <InteractiveParticleCanvas theme={theme} />
+
       {/* Top sticky Navbar with Sun / Moon Theme Toggle */}
       <Navbar
         activeTab={activeTab}
@@ -435,7 +452,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative z-10">
         {activeTab === 'timeline' && (
           <TimelineView
             key={`timeline-${activeCycleYear}`}
@@ -512,7 +529,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-stone-200 dark:border-stone-800 bg-stone-100/70 dark:bg-stone-950/70 py-8 px-4 sm:px-6 text-center text-xs text-stone-500 dark:text-stone-400">
+      <footer className="relative z-10 border-t border-stone-200 dark:border-stone-800 bg-stone-100/70 dark:bg-stone-950/70 py-8 px-4 sm:px-6 text-center text-xs text-stone-500 dark:text-stone-400">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="font-serif-title font-bold text-stone-800 dark:text-stone-200 text-sm">

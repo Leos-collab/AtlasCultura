@@ -44,58 +44,91 @@ export const FriendsDiscoveryView: React.FC<FriendsDiscoveryViewProps> = ({
 }) => {
   const [botPrompt, setBotPrompt] = useState('');
   const [isBotThinking, setIsBotThinking] = useState(false);
-  const [savedBotRecKeys, setSavedBotRecKeys] = useState<Record<string, boolean>>({});
-
-  const [botMessages, setBotMessages] = useState<BotChatMessage[]>([
-    {
-      id: 'msg-welcome',
-      sender: 'bot',
-      text: 'Olá! Sou seu Bot Curador de Lugares. Analiso seus interesses culturais e cruzamentos de referências para mapear os melhores espaços, galerias, teatros e palcos para você vivenciar.',
-      timestamp: 'Agora',
-      recommendations: [
-        {
-          title: "Exposição 'Mundos Flutuantes' de Ernesto Neto",
-          category: "museu",
-          matchReason: "Espaço com 96% de compatibilidade com seu apreço por instalações sensoriais e arte contemporânea.",
-          suggestedAction: "Ingressos disponíveis para visitação nos fins de semana na Pinacoteca.",
-          highlight: "Esculturas têxteis imersivas e arquitetura centenária",
-          venue: "Pinacoteca de São Paulo - Luz",
-          imageUrl: "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=800&q=80",
-          tags: ["Exposição", "Instalação", "Pinacoteca"]
-        },
-        {
-          title: "Cineclube Autoral & Debate Aberto",
-          category: "filme",
-          matchReason: "Cinema de rua independente com programação premiada internacionalmente e debates após a sessão.",
-          suggestedAction: "Sessões especiais às quintas-feiras com direito a café do foyer.",
-          highlight: "Projeção 35mm e debate com críticos convidados",
-          venue: "Cineclube Reserva Cultural - Av. Paulista",
-          imageUrl: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=800&q=80",
-          tags: ["Cinema", "Cineclube", "Paulista"]
-        },
-        {
-          title: "Cozinha & Brasa 212",
-          category: "restaurante",
-          matchReason: "Gastronomia autoral em pátio a céu aberto com coquetelaria premiada e ambientação botânica.",
-          suggestedAction: "Reservar mesa no jardim interno para desfrutar da lareira e drinques de autor.",
-          highlight: "Polvo na brasa e drinques autorais botânicos",
-          venue: "Cozinha 212 - Pinheiros",
-          imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80",
-          tags: ["Gastronomia", "Coquetelaria", "Jardim"]
-        },
-        {
-          title: "Noite Instrumental na Sala São Paulo",
-          category: "show",
-          matchReason: "Acústica considerada uma das melhores do mundo, com concertos sinfônicos e jazz orquestrado.",
-          suggestedAction: "Chegar 30 minutos antes para apreciar o teto móvel arquitetônico.",
-          highlight: "Apresentação da Orquestra Sinfônica com solistas convidados",
-          venue: "Sala São Paulo - Estação Júlio Prestes",
-          imageUrl: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=800&q=80",
-          tags: ["Música", "Acústica", "Patrimônio"]
-        }
-      ]
+  const [savedBotRecKeys, setSavedBotRecKeys] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('atlas_cultural_bot_keys_v1');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to parse saved bot keys:', e);
     }
-  ]);
+    return {};
+  });
+
+  const [botMessages, setBotMessages] = useState<BotChatMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem('atlas_cultural_bot_messages_v1');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to parse saved bot messages:', e);
+    }
+    return [
+      {
+        id: 'msg-welcome',
+        sender: 'bot',
+        text: 'Olá! Sou seu Bot Curador de Lugares. Analiso seus interesses culturais e cruzamentos de referências para mapear os melhores espaços, galerias, teatros e palcos para você vivenciar.',
+        timestamp: 'Agora',
+        recommendations: [
+          {
+            title: "Exposição 'Mundos Flutuantes' de Ernesto Neto",
+            category: "museu",
+            matchReason: "Espaço com 96% de compatibilidade com seu apreço por instalações sensoriais e arte contemporânea.",
+            suggestedAction: "Ingressos disponíveis para visitação nos fins de semana na Pinacoteca.",
+            highlight: "Esculturas têxteis imersivas e arquitetura centenária",
+            venue: "Pinacoteca de São Paulo - Luz",
+            imageUrl: "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=800&q=80",
+            tags: ["Exposição", "Instalação", "Pinacoteca"]
+          },
+          {
+            title: "Cineclube Autoral & Debate Aberto",
+            category: "filme",
+            matchReason: "Cinema de rua independente com programação premiada internacionalmente e debates após a sessão.",
+            suggestedAction: "Sessões especiais às quintas-feiras com direito a café do foyer.",
+            highlight: "Projeção 35mm e debate com críticos convidados",
+            venue: "Cineclube Reserva Cultural - Av. Paulista",
+            imageUrl: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=800&q=80",
+            tags: ["Cinema", "Cineclube", "Paulista"]
+          },
+          {
+            title: "Cozinha & Brasa 212",
+            category: "restaurante",
+            matchReason: "Gastronomia autoral em pátio a céu aberto com coquetelaria premiada e ambientação botânica.",
+            suggestedAction: "Reservar mesa no jardim interno para desfrutar da lareira e drinques de autor.",
+            highlight: "Polvo na brasa e drinques autorais botânicos",
+            venue: "Cozinha 212 - Pinheiros",
+            imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80",
+            tags: ["Gastronomia", "Coquetelaria", "Jardim"]
+          },
+          {
+            title: "Noite Instrumental na Sala São Paulo",
+            category: "show",
+            matchReason: "Acústica considerada uma das melhores do mundo, com concertos sinfônicos e jazz orquestrado.",
+            suggestedAction: "Chegar 30 minutos antes para apreciar o teto móvel arquitetônico.",
+            highlight: "Apresentação da Orquestra Sinfônica com solistas convidados",
+            venue: "Sala São Paulo - Estação Júlio Prestes",
+            imageUrl: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=800&q=80",
+            tags: ["Música", "Acústica", "Patrimônio"]
+          }
+        ]
+      }
+    ];
+  });
+
+  // Sync to localStorage
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('atlas_cultural_bot_messages_v1', JSON.stringify(botMessages));
+    } catch (err) {
+      console.error('Failed to save bot messages:', err);
+    }
+  }, [botMessages]);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('atlas_cultural_bot_keys_v1', JSON.stringify(savedBotRecKeys));
+    } catch (err) {
+      console.error('Failed to save bot rec keys:', err);
+    }
+  }, [savedBotRecKeys]);
 
   // Visual Chart Metric Data for the Bot
   const placeAffinities = useMemo(() => {
@@ -127,7 +160,7 @@ export const FriendsDiscoveryView: React.FC<FriendsDiscoveryViewProps> = ({
     setIsBotThinking(true);
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
       if (!apiKey) {
         throw new Error("Chave de API (VITE_GEMINI_API_KEY) não encontrada no ambiente.");
       }
@@ -197,8 +230,26 @@ A resposta **DEVE** estar em formato JSON válido, respeitando exatamente a segu
       const response = await result.response;
       const text = response.text();
 
-      const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const data = JSON.parse(cleanedText);
+      // Robustly extract valid JSON from the response, even if the model wraps it in markdown
+      const extractJson = (raw: string): string => {
+        // 1. Strip markdown code fences (```json ... ``` or ``` ... ```)
+        let s = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+        // 2. Find the outermost { ... } block using bracket depth scan
+        const start = s.indexOf('{');
+        if (start === -1) return s; // no JSON object found, let JSON.parse fail naturally
+        let depth = 0;
+        let end = -1;
+        for (let i = start; i < s.length; i++) {
+          if (s[i] === '{') depth++;
+          else if (s[i] === '}') {
+            depth--;
+            if (depth === 0) { end = i; break; }
+          }
+        }
+        return end !== -1 ? s.slice(start, end + 1) : s.slice(start);
+      };
+
+      const data = JSON.parse(extractJson(text));
 
       let recs: SmartRecommendation[] = [];
       let replyMsg = `Com base na curadoria de espaços para "${query}", selecionei estes lugares especiais:`;
@@ -266,70 +317,11 @@ A resposta **DEVE** estar em formato JSON válido, respeitando exatamente a segu
             <span>Curadoria de Lugares & Espaços Culturais</span>
           </div>
           <h2 className="font-serif-title text-2xl sm:text-3xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">
-            Descoberta de Lugares
+            Bot Curador de Lugares
           </h2>
           <p className="text-sm text-stone-600 dark:text-stone-400">
-            Gráficos de afinidade cultural e curadoria do bot para descobrir seus próximos destinos.
+            Seu assistente de inteligência artificial para descobrir e salvar novos destinos culturais.
           </p>
-        </div>
-      </div>
-
-      {/* GRÁFICO DO BOT: Radar & Distribuição de Afinidade de Lugares */}
-      <div className="bg-white dark:bg-stone-900 border border-amber-300/80 dark:border-stone-800 rounded-3xl p-5 sm:p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 mb-4 border-b border-stone-100 dark:border-stone-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-serif-title font-bold text-base text-stone-900 dark:text-stone-100">
-                Gráfico do Bot: Mapeamento de Afinidade de Lugares
-              </h3>
-              <p className="text-xs text-stone-500 dark:text-stone-400">
-                Índice algorítmico de compatibilidade entre seus registros e os espaços culturais mapeados
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/70 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 text-xs font-bold self-start sm:self-auto border border-amber-300/50">
-            <Award className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            <span>94% Sintonia Média</span>
-          </div>
-        </div>
-
-        {/* Visual Bar Distribution Chart */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {placeAffinities.map((item, idx) => (
-            <div
-              key={idx}
-              className="p-3.5 rounded-2xl bg-stone-50 dark:bg-stone-950/60 border border-stone-200/80 dark:border-stone-800 hover:border-amber-400/50 transition-colors"
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold text-stone-800 dark:text-stone-200 flex items-center gap-1.5">
-                  <CategoryIcon category={item.cat} className="w-3.5 h-3.5" />
-                  <span>{item.label}</span>
-                </span>
-                <span className="text-xs font-extrabold text-amber-700 dark:text-amber-400">
-                  {item.score}% match
-                </span>
-              </div>
-
-              {/* Progress visual bar */}
-              <div className="w-full h-2.5 bg-stone-200 dark:bg-stone-800 rounded-full overflow-hidden mb-1.5">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${item.score}%`,
-                    backgroundColor: item.color
-                  }}
-                />
-              </div>
-
-              <div className="flex items-center justify-between text-[11px] text-stone-500 dark:text-stone-400">
-                <span>{item.count} lugares mapeados</span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">Alta recomendação</span>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 

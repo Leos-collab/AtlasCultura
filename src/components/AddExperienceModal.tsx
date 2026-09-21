@@ -16,7 +16,8 @@ import {
   Image as ImageIcon, 
   Sliders, 
   Trash2, 
-  RotateCw 
+  RotateCw,
+  Hand
 } from 'lucide-react';
 import { 
   CulturalExperience, 
@@ -138,8 +139,65 @@ export const AddExperienceModal: React.FC<AddExperienceModalProps> = ({
   const [imagePolaroidText, setImagePolaroidText] = useState<string>('');
   const [showImageAdvanced, setShowImageAdvanced] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [isDraggingFocal, setIsDraggingFocal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const imagePreviewRef = useRef<HTMLDivElement | null>(null);
+
+  const updateFocalFromEvent = (clientX: number, clientY: number) => {
+    if (!imagePreviewRef.current) return;
+    const rect = imagePreviewRef.current.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    const clickX = Math.max(0, Math.min(100, Math.round(((clientX - rect.left) / rect.width) * 100)));
+    const clickY = Math.max(0, Math.min(100, Math.round(((clientY - rect.top) / rect.height) * 100)));
+    setImageFocalX(clickX);
+    setImageFocalY(clickY);
+  };
+
+  useEffect(() => {
+    if (!isDraggingFocal) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      updateFocalFromEvent(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        updateFocalFromEvent(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingFocal(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleMouseUp);
+    };
+  }, [isDraggingFocal]);
+
+  useEffect(() => {
+    const el = imagePreviewRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY < 0 ? 0.08 : -0.08;
+      setImageZoom(prev => Math.max(1.0, Math.min(3.0, parseFloat((prev + delta).toFixed(2)))));
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [imageUrl, showImageAdvanced]);
 
   useEffect(() => {
     if (initialData) {
@@ -719,7 +777,12 @@ export const AddExperienceModal: React.FC<AddExperienceModalProps> = ({
                         step="0.05"
                         value={imageZoom}
                         onChange={(e) => setImageZoom(parseFloat(e.target.value))}
-                        className="flex-1 accent-amber-500 cursor-pointer h-2 bg-stone-200 dark:bg-stone-800 rounded-lg"
+                        onInput={(e) => setImageZoom(parseFloat((e.target as HTMLInputElement).value))}
+                        onWheel={(e) => {
+                          const delta = e.deltaY < 0 ? 0.05 : -0.05;
+                          setImageZoom(prev => Math.max(1.0, Math.min(3.0, parseFloat((prev + delta).toFixed(2)))));
+                        }}
+                        className="flex-1 accent-amber-500 cursor-pointer h-2 bg-stone-200 dark:bg-stone-800 rounded-lg touch-none"
                       />
                       <span className="text-[11px] font-semibold text-stone-500">3x</span>
                     </div>
@@ -742,43 +805,12 @@ export const AddExperienceModal: React.FC<AddExperienceModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Focal Point X and Y Fine Controls */}
-                  <div className="pt-2 border-t border-amber-300/40 dark:border-stone-800 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <div className="flex items-center justify-between text-[11px] text-stone-600 dark:text-stone-300 mb-0.5">
-                        <span>Foco Horizontal (X):</span>
-                        <span className="font-mono font-bold text-amber-600 dark:text-amber-400">{imageFocalX}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={imageFocalX}
-                        onChange={(e) => setImageFocalX(parseInt(e.target.value))}
-                        className="w-full accent-amber-500 cursor-pointer h-1.5"
-                      />
+                  {/* Interactive Hand Tool & Scroll Zoom Info */}
+                  <div className="pt-2 border-t border-amber-300/40 dark:border-stone-800 flex items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-1.5 text-stone-700 dark:text-stone-300 text-[11px]">
+                      <Hand className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span>Arraste a foto para posicionar ou use a <strong>rodinha do mouse</strong> para dar zoom!</span>
                     </div>
-
-                    <div>
-                      <div className="flex items-center justify-between text-[11px] text-stone-600 dark:text-stone-300 mb-0.5">
-                        <span>Foco Vertical (Y):</span>
-                        <span className="font-mono font-bold text-amber-600 dark:text-amber-400">{imageFocalY}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={imageFocalY}
-                        onChange={(e) => setImageFocalY(parseInt(e.target.value))}
-                        className="w-full accent-amber-500 cursor-pointer h-1.5"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <p className="text-[10px] text-stone-500 dark:text-stone-400 italic">
-                      🎯 Dica: Clique na imagem abaixo no ponto exato que quer focalizar!
-                    </p>
                     <button
                       type="button"
                       onClick={() => {
@@ -786,21 +818,21 @@ export const AddExperienceModal: React.FC<AddExperienceModalProps> = ({
                         setImageFocalY(50);
                         setImageZoom(1.0);
                       }}
-                      className="text-[10px] text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 underline cursor-pointer"
+                      className="text-[10px] text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 underline cursor-pointer shrink-0"
                     >
                       Centralizar (50%)
                     </button>
                   </div>
                 </div>
 
-                {/* Live Preview of Framed Image with Interactive Focal Click */}
+                {/* Live Preview of Framed Image with Interactive Hand Drag */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
                       Pré-visualização da Forma Selecionada:
                     </span>
                     <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
-                      {imageZoom > 1.0 ? `Zoom ${imageZoom}x em (${imageFocalX}%, ${imageFocalY}%)` : 'Zoom 1.0x (Original)'}
+                      {imageZoom > 1.0 ? `Zoom ${imageZoom}x (${imageFocalX}%, ${imageFocalY}%)` : 'Zoom 1.0x (Original)'}
                     </span>
                   </div>
 
@@ -815,15 +847,22 @@ export const AddExperienceModal: React.FC<AddExperienceModalProps> = ({
                   >
                     <div className="w-full flex flex-col items-center">
                       <div 
-                        onClick={(e) => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const clickX = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
-                          const clickY = Math.max(0, Math.min(100, Math.round(((e.clientY - rect.top) / rect.height) * 100)));
-                          setImageFocalX(clickX);
-                          setImageFocalY(clickY);
+                        ref={imagePreviewRef}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setIsDraggingFocal(true);
+                          updateFocalFromEvent(e.clientX, e.clientY);
                         }}
-                        className={`w-full overflow-hidden relative group cursor-crosshair ${getAspectRatioClass(imageAspectRatio)}`}
-                        title="Clique onde você quer focalizar o zoom!"
+                        onTouchStart={(e) => {
+                          if (e.touches.length > 0) {
+                            setIsDraggingFocal(true);
+                            updateFocalFromEvent(e.touches[0].clientX, e.touches[0].clientY);
+                          }
+                        }}
+                        className={`w-full overflow-hidden relative group select-none ${
+                          isDraggingFocal ? 'cursor-grabbing' : 'cursor-grab'
+                        } ${getAspectRatioClass(imageAspectRatio)}`}
+                        title="Clique e arraste com a mãozinha para mover o zoom!"
                       >
                         <img
                           src={imageUrl}
@@ -832,20 +871,17 @@ export const AddExperienceModal: React.FC<AddExperienceModalProps> = ({
                             transform: `scale(${imageZoom})`,
                             transformOrigin: `${imageFocalX}% ${imageFocalY}%`
                           }}
-                          className={`w-full h-full transition-transform duration-200 select-none ${
-                            imageFit === 'contain' ? 'object-contain bg-black' : 'object-cover'
-                          }`}
+                          className={`w-full h-full select-none ${
+                            isDraggingFocal ? 'transition-none' : 'transition-transform duration-150'
+                          } ${imageFit === 'contain' ? 'object-contain bg-black' : 'object-cover'}`}
                         />
 
-                        {/* Interactive Crosshair Indicator */}
-                        <div 
-                          className="absolute pointer-events-none w-6 h-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-400 bg-amber-400/30 shadow-md ring-2 ring-black/40 flex items-center justify-center transition-all"
-                          style={{
-                            left: `${imageFocalX}%`,
-                            top: `${imageFocalY}%`
-                          }}
-                        >
-                          <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        {/* Drag indicator floating badge */}
+                        <div className={`absolute top-2 right-2 pointer-events-none px-2 py-1 rounded-md bg-stone-950/80 backdrop-blur-xs text-[10px] text-amber-300 font-medium flex items-center gap-1 transition-opacity shadow-md ${
+                          isDraggingFocal ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                        }`}>
+                          <Hand className="w-3 h-3 text-amber-400" />
+                          <span>{isDraggingFocal ? 'Movendo foco...' : 'Arraste para mover'}</span>
                         </div>
                       </div>
 

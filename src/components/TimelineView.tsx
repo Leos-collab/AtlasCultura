@@ -3,15 +3,13 @@ import {
   Calendar, 
   MapPin, 
   Star, 
-  Heart, 
-  Filter, 
-  Grid, 
-  List, 
+  Heart,
+  Columns2,
+  Grid2x2,
   Clock, 
   Sparkles,
   Plus,
-  ArrowUpDown,
-  Search
+  ArrowUpDown
 } from 'lucide-react';
 import { CulturalExperience, ExperienceCategory } from '../types';
 import { CATEGORIES_CONFIG } from '../data/categories';
@@ -31,7 +29,7 @@ interface TimelineViewProps {
   onRestoreSampleData?: () => void;
 }
 
-type ViewMode = 'timeline' | 'gallery' | 'compact';
+type ViewMode = 'timeline' | 'category' | 'gallery';
 type SortOption = 'date_desc' | 'date_asc' | 'rating_desc';
 
 const MONTH_NAMES = [
@@ -56,6 +54,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
   const [sortOption, setSortOption] = useState<SortOption>('date_desc');
   const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [activeCategoryTab, setActiveCategoryTab] = useState<ExperienceCategory | null>(null);
 
   // Keep selectedYear synchronized if activeCycleYear changes
   React.useEffect(() => {
@@ -103,13 +102,17 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       })
       .sort((a, b) => {
         if (sortOption === 'date_desc') {
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
+          const da = new Date((a.date || '1900-01-01') + 'T12:00:00').getTime();
+          const db = new Date((b.date || '1900-01-01') + 'T12:00:00').getTime();
+          return db !== da ? db - da : (b.createdAt || 0) - (a.createdAt || 0);
         }
         if (sortOption === 'date_asc') {
-          return new Date(a.date).getTime() - new Date(b.date).getTime();
+          const da = new Date((a.date || '9999-12-31') + 'T12:00:00').getTime();
+          const db = new Date((b.date || '9999-12-31') + 'T12:00:00').getTime();
+          return da !== db ? da - db : (a.createdAt || 0) - (b.createdAt || 0);
         }
         if (sortOption === 'rating_desc') {
-          return b.rating - a.rating;
+          return b.rating !== a.rating ? b.rating - a.rating : (b.createdAt || 0) - (a.createdAt || 0);
         }
         return 0;
       });
@@ -140,9 +143,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Filter and View Mode Controls */}
-      <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-4 shadow-xs space-y-4 transition-colors">
+      <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-5 shadow-xs space-y-4 transition-colors">
         {/* Category Pills Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             id="filter-cat-all"
@@ -233,7 +236,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             {/* Sort Dropdown */}
             <div className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-stone-400">
               <ArrowUpDown className="w-3.5 h-3.5 text-stone-400" />
@@ -249,40 +252,52 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
               </select>
             </div>
 
-            {/* Layout switchers */}
-            <div className="flex items-center bg-stone-100 dark:bg-stone-800 p-1 rounded-xl text-stone-600 dark:text-stone-300">
+            {/* Visualizações — 3-mode labeled tab bar */}
+            <div className="flex items-center bg-stone-100 dark:bg-stone-800/90 p-1 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 gap-0.5">
               <button
                 type="button"
                 id="view-mode-timeline"
                 onClick={() => setViewMode('timeline')}
-                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                  viewMode === 'timeline' ? 'bg-white dark:bg-stone-700 shadow-xs text-stone-900 dark:text-stone-100' : 'hover:text-stone-900 dark:hover:text-stone-200'
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                  viewMode === 'timeline'
+                    ? 'bg-white dark:bg-stone-700 shadow-sm text-stone-900 dark:text-stone-100'
+                    : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'
                 }`}
                 title="Linha do Tempo"
               >
-                <Clock className="w-4 h-4" />
+                <Clock className="w-3.5 h-3.5" />
+                <span>Linha do Tempo</span>
+              </button>
+              <button
+                type="button"
+                id="view-mode-category"
+                onClick={() => {
+                  setViewMode('category');
+                  setActiveCategoryTab(null);
+                }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                  viewMode === 'category'
+                    ? 'bg-white dark:bg-stone-700 shadow-sm text-stone-900 dark:text-stone-100'
+                    : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'
+                }`}
+                title="Por Categoria"
+              >
+                <Columns2 className="w-3.5 h-3.5" />
+                <span>Por Categoria</span>
               </button>
               <button
                 type="button"
                 id="view-mode-gallery"
                 onClick={() => setViewMode('gallery')}
-                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                  viewMode === 'gallery' ? 'bg-white dark:bg-stone-700 shadow-xs text-stone-900 dark:text-stone-100' : 'hover:text-stone-900 dark:hover:text-stone-200'
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                  viewMode === 'gallery'
+                    ? 'bg-white dark:bg-stone-700 shadow-sm text-stone-900 dark:text-stone-100'
+                    : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'
                 }`}
-                title="Galeria de Pôsteres"
+                title="Galeria Visual"
               >
-                <Grid className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                id="view-mode-compact"
-                onClick={() => setViewMode('compact')}
-                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                  viewMode === 'compact' ? 'bg-white dark:bg-stone-700 shadow-xs text-stone-900 dark:text-stone-100' : 'hover:text-stone-900 dark:hover:text-stone-200'
-                }`}
-                title="Lista Compacta"
-              >
-                <List className="w-4 h-4" />
+                <Grid2x2 className="w-3.5 h-3.5" />
+                <span>Galeria Visual</span>
               </button>
             </div>
           </div>
@@ -586,48 +601,125 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         </div>
       )}
 
-      {/* VIEW 3: Compact Rows */}
-      {viewMode === 'compact' && filteredExperiences.length > 0 && (
-        <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl overflow-hidden divide-y divide-stone-100 dark:divide-stone-800">
-          {filteredExperiences.map((item) => {
-            const catConfig = CATEGORIES_CONFIG[item.category] || CATEGORIES_CONFIG.outro;
-            return (
-              <div
-                key={item.id}
-                onClick={() => onSelectExperience(item)}
-                className="p-3 sm:px-5 sm:py-3.5 flex items-center justify-between gap-4 hover:bg-stone-50 dark:hover:bg-stone-800/60 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${catConfig.bgLight}`}>
-                    <CategoryIcon category={item.category} className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="text-sm font-semibold text-stone-900 dark:text-stone-100 truncate">
-                      {item.title}
-                    </h4>
-                    <p className="text-xs text-stone-500 dark:text-stone-400 truncate">
-                      {item.creatorOrArtist ? `${item.creatorOrArtist} • ` : ''}{item.venue}
-                    </p>
-                  </div>
-                </div>
+      {/* VIEW 3: Por Categoria — horizontal category tabs + cards grid */}
+      {viewMode === 'category' && filteredExperiences.length > 0 && (() => {
+        // Build list of categories that actually have items (in order)
+        const catsWithItems = (Object.keys(CATEGORIES_CONFIG) as ExperienceCategory[]).filter(
+          cat => filteredExperiences.some(e => e.category === cat)
+        );
+        const currentTab: ExperienceCategory = activeCategoryTab && catsWithItems.includes(activeCategoryTab)
+          ? activeCategoryTab
+          : catsWithItems[0];
+        const tabItems = filteredExperiences.filter(e => e.category === currentTab);
 
-                <div className="flex items-center gap-4 shrink-0">
-                  <span className="hidden sm:inline-block text-xs text-stone-500 dark:text-stone-400">
-                    {new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR')}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-[10px] font-semibold">
-                    {item.vibeTag}
-                  </span>
-                  <div className="flex items-center gap-1 text-amber-500 text-xs font-bold">
-                    <Star className="w-3 h-3 fill-amber-400" />
-                    <span>{item.rating}</span>
-                  </div>
-                </div>
+        return (
+          <div className="space-y-0">
+            {/* Horizontal category tab strip */}
+            <div className="flex items-stretch overflow-x-auto no-scrollbar bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-t-2xl">
+              {catsWithItems.map((cat, idx) => {
+                const cfg = CATEGORIES_CONFIG[cat];
+                const isActive = cat === currentTab;
+                const count = filteredExperiences.filter(e => e.category === cat).length;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    id={`category-tab-${cat}`}
+                    onClick={() => setActiveCategoryTab(cat)}
+                    className={`relative flex-1 min-w-[100px] flex flex-col items-center gap-1 px-4 py-3.5 text-xs font-bold whitespace-nowrap transition-all cursor-pointer border-b-2 ${
+                      isActive
+                        ? 'border-amber-400 text-stone-900 dark:text-stone-100 bg-amber-50/60 dark:bg-amber-950/20'
+                        : 'border-transparent text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-800/50'
+                    } ${
+                      idx > 0 ? 'border-l border-stone-100 dark:border-stone-800' : ''
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                      isActive ? 'bg-amber-400/20 text-amber-600 dark:text-amber-400' : 'bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400'
+                    }`}>
+                      <CategoryIcon category={cat} className="w-4 h-4" />
+                    </div>
+                    <span>{cfg.pluralLabel}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                      isActive
+                        ? 'bg-amber-400/30 text-amber-700 dark:text-amber-300'
+                        : 'bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400'
+                    }`}>{count}</span>
+                    {isActive && (
+                      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-amber-400 rounded-full" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Cards grid for active category */}
+            <div className="bg-white/60 dark:bg-stone-900/60 border border-t-0 border-stone-200 dark:border-stone-800 rounded-b-2xl p-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tabItems.map((item) => {
+                  const catConfig = CATEGORIES_CONFIG[item.category] || CATEGORIES_CONFIG.outro;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => onSelectExperience(item)}
+                      className="group bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 hover:border-amber-400 dark:hover:border-amber-500/50 overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col"
+                    >
+                      {/* Image / Poster */}
+                      <div className="relative h-44 w-full bg-stone-900 overflow-hidden">
+                        <SafeImage
+                          src={item.imageUrl}
+                          alt={item.title}
+                          category={item.category}
+                          fallbackTitle={item.title}
+                          style={{
+                            transform: item.imageZoom ? `scale(${item.imageZoom})` : undefined,
+                            transformOrigin: `${item.imageFocalX ?? 50}% ${item.imageFocalY ?? 50}%`
+                          }}
+                          className={`w-full h-full ${
+                            item.imageFit === 'contain' ? 'object-contain bg-black' : 'object-cover'
+                          } group-hover:scale-105 transition-transform duration-300`}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent pointer-events-none" />
+                        {/* Fav button */}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onToggleFavorite(item.id); }}
+                          className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-stone-900/60 backdrop-blur-xs hover:bg-stone-900 text-white cursor-pointer"
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${item.favorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+                        </button>
+                        {/* Title overlay */}
+                        <div className="absolute bottom-3 left-3 right-3 text-white">
+                          <h4 className="font-serif-title font-bold text-sm line-clamp-2 leading-snug">{item.title}</h4>
+                          {item.creatorOrArtist && (
+                            <p className="text-[11px] text-stone-300 truncate mt-0.5">{item.creatorOrArtist}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Footer info */}
+                      <div className="px-4 py-3 flex items-center justify-between gap-2 text-xs text-stone-500 dark:text-stone-400">
+                        <span>{new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        <div className="flex items-center gap-2">
+                          {item.vibeTag && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/50 text-[10px] font-semibold">
+                              {item.vibeTag}
+                            </span>
+                          )}
+                          <div className="flex items-center gap-1 text-amber-500 font-bold">
+                            <Star className="w-3 h-3 fill-amber-400" />
+                            <span>{item.rating}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

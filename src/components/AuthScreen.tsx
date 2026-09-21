@@ -3,6 +3,7 @@ import {
   Compass,
   Sparkles,
   ArrowRight,
+  ArrowLeft,
   User,
   Mail,
   Lock,
@@ -19,11 +20,13 @@ import {
 import { UserProfile, ExperienceCategory } from '../types';
 import { CATEGORIES_CONFIG } from '../data/categories';
 import { CategoryIcon } from './CategoryIcon';
+import { InteractiveParticleCanvas } from './InteractiveParticleCanvas';
 
 interface AuthScreenProps {
   onLogin: (user: UserProfile, isNewRegistration?: boolean) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
+  onBackToIntro?: () => void;
 }
 
 const AUTH_FEATURED_CATEGORIES: ExperienceCategory[] = ['show', 'filme', 'livro', 'museu', 'peça', 'viagem'];
@@ -63,7 +66,8 @@ const CULTURAL_VIBES = [
 export const AuthScreen: React.FC<AuthScreenProps> = ({
   onLogin,
   theme,
-  onToggleTheme
+  onToggleTheme,
+  onBackToIntro
 }) => {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('register');
   const [name, setName] = useState('');
@@ -154,6 +158,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
         }`}
     >
 
+      {/* Interactive Golden Dot Matrix Particle Wave Canvas (matching image style) */}
+      <InteractiveParticleCanvas theme={theme} />
+
       {/* Interactive Mouse Glow Trail */}
       <div
         ref={glowRef}
@@ -167,40 +174,59 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
       {/* Foreground Content */}
       <div className="relative z-10 flex flex-col min-h-screen w-full">
-        {/* Top micro bar with theme toggle */}
-        <header className="w-full max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 select-none">
-            <div className="w-9 h-9 rounded-xl bg-stone-900 text-amber-400 flex items-center justify-center shadow-sm">
-              <Compass className="w-5 h-5" />
+        {/* Top Header Bar with Bottom Border Line & Ambient Glass background */}
+        <header className="w-full border-b border-stone-200/80 dark:border-stone-800/80 bg-white/60 dark:bg-stone-950/60 backdrop-blur-md sticky top-0 z-20 shadow-xs">
+          <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3 select-none">
+              {/* Back to Intro button */}
+              {onBackToIntro && (
+                <button
+                  type="button"
+                  onClick={onBackToIntro}
+                  title="Voltar à tela de apresentação"
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all cursor-pointer ${
+                    theme === 'dark'
+                      ? 'bg-stone-900/80 border-stone-800 text-stone-400 hover:text-amber-300 hover:border-amber-500/40'
+                      : 'bg-white/80 border-stone-200 text-stone-500 hover:text-stone-900 hover:border-stone-400'
+                  }`}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+              )}
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-stone-950 dark:bg-amber-400 dark:text-stone-950 flex items-center justify-center shadow-md shadow-amber-500/20">
+                <Compass className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <span className="font-serif-title font-bold text-xl tracking-tight bg-gradient-to-r from-stone-900 via-stone-800 to-amber-600 dark:from-stone-100 dark:via-stone-200 dark:to-amber-400 bg-clip-text text-transparent">
+                Atlas Cultural
+              </span>
             </div>
-            <span className="font-serif-title font-bold text-xl tracking-tight">
-              Atlas Cultural
-            </span>
-          </div>
 
-          {/* Theme Toggle Button */}
-          <button
-            type="button"
-            id="auth-theme-toggle-btn"
-            onClick={onToggleTheme}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${theme === 'dark'
-              ? 'bg-stone-900 border-stone-800 text-amber-300 hover:bg-stone-800'
-              : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
-              }`}
-            title={theme === 'light' ? 'Modo Claro ativo (clique para escuro)' : 'Modo Escuro ativo (clique para claro)'}
-          >
-            {theme === 'light' ? (
-              <>
-                <Sun className="w-4 h-4 text-amber-500" />
-                <span>Modo Claro</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-4 h-4 text-sky-300" />
-                <span>Modo Escuro</span>
-              </>
-            )}
-          </button>
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              id="auth-theme-toggle-btn"
+              onClick={onToggleTheme}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-xs ${theme === 'dark'
+                ? 'bg-stone-900/90 border-stone-800 text-amber-300 hover:bg-stone-800 hover:border-amber-500/40'
+                : 'bg-white/90 border-stone-200 text-stone-700 hover:bg-stone-100 hover:border-amber-500/40'
+                }`}
+              title={theme === 'light' ? 'Modo Claro ativo (clique para escuro)' : 'Modo Escuro ativo (clique para claro)'}
+            >
+              {theme === 'light' ? (
+                <>
+                  <Sun className="w-4 h-4 text-amber-500" />
+                  <span>Modo Claro</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4 text-amber-300" />
+                  <span>Modo Escuro</span>
+                </>
+              )}
+            </button>
+          </div>
+          {/* Subtle golden gradient line separating header from main content */}
+          <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
         </header>
 
         {/* Main Container */}
