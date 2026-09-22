@@ -140,17 +140,26 @@ export const WelcomeOnboardingModal: React.FC<WelcomeOnboardingModalProps> = ({
 
         {/* Step dots & CTA */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2" style={{ height: '8px' }}>
             {steps.map((_, dotIdx) => (
               <button
                 key={dotIdx}
                 type="button"
                 onClick={() => setCurrentStep(dotIdx)}
-                className={`h-2 rounded-full transition-all cursor-pointer ${
-                  currentStep === dotIdx
-                    ? 'w-6 bg-amber-500'
-                    : 'w-2 bg-stone-300 dark:bg-stone-700'
-                }`}
+                style={{
+                  width: currentStep === dotIdx ? '24px' : '8px',
+                  height: '8px',
+                  borderRadius: '9999px',
+                  backgroundColor: currentStep === dotIdx ? '#f59e0b' : undefined,
+                  flexShrink: 0,
+                  transition: 'all 0.25s ease',
+                  cursor: 'pointer',
+                  border: 'none',
+                  padding: 0,
+                  verticalAlign: 'middle',
+                  display: 'inline-block',
+                }}
+                className={currentStep === dotIdx ? '' : 'bg-stone-300 dark:bg-stone-700'}
                 title={`Passo ${dotIdx + 1}`}
               />
             ))}

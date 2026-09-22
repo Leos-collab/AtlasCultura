@@ -29,17 +29,17 @@ interface MindMapCanvasProps {
   onRestoreSampleData?: () => void;
 }
 
-// Satellite node definition with relative angle and distance
+// Satellite node definition with perfectly aligned equidistant angles (360° / 9 = 40°)
 const CATEGORY_LAYOUT: { category: ExperienceCategory; angleDeg: number; distFactor: number }[] = [
-  { category: 'livro', angleDeg: 270, distFactor: 0.95 },      // Top
-  { category: 'filme', angleDeg: 315, distFactor: 1.05 },      // Top Right
-  { category: 'festival', angleDeg: 355, distFactor: 1.1 },    // Right
-  { category: 'viagem', angleDeg: 40, distFactor: 1.05 },      // Bottom Right
-  { category: 'restaurante', angleDeg: 90, distFactor: 0.95 }, // Bottom
-  { category: 'peça', angleDeg: 140, distFactor: 1.05 },       // Bottom Left
-  { category: 'outro', angleDeg: 180, distFactor: 1.1 },       // Left
-  { category: 'show', angleDeg: 215, distFactor: 1.05 },       // Top Left
-  { category: 'museu', angleDeg: 245, distFactor: 0.95 },      // Upper Left
+  { category: 'livro', angleDeg: 270, distFactor: 1.0 },       // Top center (270°)
+  { category: 'filme', angleDeg: 310, distFactor: 1.0 },       // Top right (310°)
+  { category: 'festival', angleDeg: 350, distFactor: 1.0 },    // Right (350°)
+  { category: 'viagem', angleDeg: 30, distFactor: 1.0 },       // Bottom right (30°)
+  { category: 'restaurante', angleDeg: 70, distFactor: 1.0 },  // Bottom center-right (70°)
+  { category: 'peça', angleDeg: 110, distFactor: 1.0 },        // Bottom center-left (110°)
+  { category: 'outro', angleDeg: 150, distFactor: 1.0 },       // Left-bottom (150°)
+  { category: 'show', angleDeg: 190, distFactor: 1.0 },        // Left-top (190°)
+  { category: 'museu', angleDeg: 230, distFactor: 1.0 },       // Top left (230°)
 ];
 
 export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
