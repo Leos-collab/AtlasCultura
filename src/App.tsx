@@ -18,8 +18,8 @@ import {
   CulturalExperience, 
   FriendProfile, 
   FriendActivity, 
-  ActiveTab,
-  UserProfile,
+  ActiveTab, 
+  UserProfile, 
   ExperienceCategory 
 } from './types';
 import { 
@@ -28,6 +28,14 @@ import {
   INITIAL_FRIEND_ACTIVITIES, 
   INITIAL_WISHLIST 
 } from './data/initialData';
+import { 
+  supabaseFetchExperiences, 
+  supabaseSaveExperience, 
+  supabaseDeleteExperience, 
+  supabaseUpdateProfile, 
+  supabaseSignOut 
+} from './services/supabaseService';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
 
 const STORAGE_KEYS = {
   EXPERIENCES: 'atlas_cultural_experiences_v1',
@@ -119,6 +127,64 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
 
+  // Check Supabase session on initial mount
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user && !currentUser) {
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            if (profile) {
+              const restoredUser: UserProfile = {
+                id: profile.id,
+                name: profile.name,
+                email: profile.email,
+                avatar: profile.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+                bio: profile.bio || '',
+                favoriteCategories: profile.favorite_categories || ['show', 'museu', 'livro', 'filme'],
+                createdAt: profile.created_at ? new Date(profile.created_at).getTime() : Date.now(),
+                isPremium: Boolean(profile.is_premium)
+              };
+              setCurrentUser(restoredUser);
+              try {
+                localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(restoredUser));
+              } catch (e) {}
+            }
+          });
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        try {
+          localStorage.removeItem(STORAGE_KEYS.USER);
+        } catch (e) {}
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Fetch experiences & wishlist from Supabase cloud database when user logs in
+  useEffect(() => {
+    if (!currentUser || !isSupabaseConfigured()) return;
+
+    supabaseFetchExperiences(currentUser.id).then(({ experiences: cloudExperiences, wishlist: cloudWishlist }) => {
+      if (cloudExperiences.length > 0 || cloudWishlist.length > 0) {
+        setExperiences(cloudExperiences);
+        setWishlist(cloudWishlist);
+      }
+    });
+  }, [currentUser?.id]);
+
   // Sync Theme to documentElement class
   useEffect(() => {
     try {
@@ -147,7 +213,6 @@ export default function App() {
     }
 
     if (isNewRegistration) {
-      // USER REQUEST: Quando criar nova conta, resetar dados do sistema, salvando apenas o administrador
       const isAdmin = user.email.toLowerCase() === 'leo.estivalet@gmail.com';
       if (!isAdmin) {
         setExperiences([]);
@@ -174,6 +239,7 @@ export default function App() {
     } catch (err) {
       console.error('Failed to clear user profile:', err);
     }
+    supabaseSignOut();
   };
 
   const handleSaveUserProfile = (updated: Partial<UserProfile>) => {
@@ -185,6 +251,7 @@ export default function App() {
     } catch (err) {
       console.error('Failed to save user profile:', err);
     }
+    supabaseUpdateProfile(currentUser.id, updated);
   };
 
   // Sync to localStorage
@@ -225,6 +292,19 @@ export default function App() {
 
   // Add / Edit handler
   const handleSaveExperience = (expData: Partial<CulturalExperience>) => {
+    let savedExperience: CulturalExperience;
+
+    const isTargetCompleted = (expData.status || 'completed') === 'completed';
+    const isAlreadyInCompleted = Boolean(expData.id && experiences.some(e => e.id === expData.id && e.status === 'completed'));
+    const totalCompleted = experiences.filter(e => e.status === 'completed').length;
+
+    // Strict Free Plan Limit: Max 5 completed experiences
+    if (!currentUser?.isPremium && isTargetCompleted && !isAlreadyInCompleted && totalCompleted >= 5) {
+      alert('Você atingiu o limite de 5 experiências do plano gratuito. Faça upgrade para o plano Premium para registrar experiências ilimitadas!');
+      setActiveTab('subscription');
+      return;
+    }
+
     if (expData.id) {
       // Edit existing or move between lists
       if (expData.status === 'wishlist') {
@@ -242,6 +322,8 @@ export default function App() {
         });
         setWishlist(prev => prev.filter(w => w.id !== expData.id));
       }
+
+      savedExperience = expData as CulturalExperience;
 
       if (detailExperience && detailExperience.id === expData.id) {
         setDetailExperience({ ...detailExperience, ...expData } as CulturalExperience);
@@ -274,6 +356,8 @@ export default function App() {
         favorite: false
       };
 
+      savedExperience = newExp;
+
       if (newExp.status === 'wishlist') {
         setWishlist(prev => [newExp, ...prev]);
         setActiveTab('wishlist');
@@ -285,6 +369,10 @@ export default function App() {
         }
       }
     }
+
+    if (currentUser?.id) {
+      supabaseSaveExperience(savedExperience, currentUser.id);
+    }
     setEditingExperience(null);
   };
 
@@ -292,15 +380,28 @@ export default function App() {
   const handleDeleteExperience = (id: string) => {
     setExperiences(prev => prev.filter(e => e.id !== id));
     setDetailExperience(null);
+    if (currentUser?.id) {
+      supabaseDeleteExperience(id, currentUser.id);
+    }
   };
 
   // Toggle favorite
   const handleToggleFavorite = (id: string) => {
+    let updatedItem: CulturalExperience | undefined;
     setExperiences(prev =>
-      prev.map(item => (item.id === id ? { ...item, favorite: !item.favorite } : item))
+      prev.map(item => {
+        if (item.id === id) {
+          updatedItem = { ...item, favorite: !item.favorite };
+          return updatedItem;
+        }
+        return item;
+      })
     );
     if (detailExperience && detailExperience.id === id) {
       setDetailExperience(prev => (prev ? { ...prev, favorite: !prev.favorite } : null));
+    }
+    if (currentUser?.id && updatedItem) {
+      supabaseSaveExperience(updatedItem, currentUser.id);
     }
   };
 
@@ -345,22 +446,35 @@ export default function App() {
       createdAt: Date.now()
     };
     setWishlist(prev => [newItem, ...prev]);
+    if (currentUser?.id) {
+      supabaseSaveExperience(newItem, currentUser.id);
+    }
   };
 
   // Mark wishlist item as completed
   const handleMarkAsCompleted = (wishItem: CulturalExperience) => {
+    const totalCompleted = experiences.filter(e => e.status === 'completed').length;
+    if (!currentUser?.isPremium && totalCompleted >= 5) {
+      alert('Você atingiu o limite de 5 experiências do plano gratuito. Faça upgrade para o Premium para transferir desejos para sua Linha do Tempo!');
+      setActiveTab('subscription');
+      return;
+    }
     setEditingExperience({
       ...wishItem,
       status: 'completed',
       date: new Date().toISOString().slice(0, 10),
       rating: 5
     });
+    setAddModalInitialMode('experience');
     setIsAddModalOpen(true);
   };
 
   // Remove item from wishlist
   const handleRemoveWishlistItem = (id: string) => {
     setWishlist(prev => prev.filter(w => w.id !== id));
+    if (currentUser?.id) {
+      supabaseDeleteExperience(id, currentUser.id);
+    }
   };
 
   // Reset to default sample data
@@ -527,6 +641,9 @@ export default function App() {
               setAddModalInitialMode('wishlist');
               setIsAddModalOpen(true);
             }}
+            isPremium={currentUser?.isPremium}
+            totalCompletedCount={experiences.filter(e => e.status === 'completed').length}
+            onGoToPlans={() => setActiveTab('subscription')}
           />
         )}
 
@@ -634,6 +751,8 @@ export default function App() {
         onClose={() => setShowWelcomeBack(false)}
         userName={currentUser?.name || 'Viajante Cultural'}
         theme={theme}
+        onToggleTheme={toggleTheme}
+        experienceCount={experiences.filter(e => e.status === 'completed').length}
       />
     </div>
   );

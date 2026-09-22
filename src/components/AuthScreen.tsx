@@ -22,6 +22,9 @@ import { CATEGORIES_CONFIG } from '../data/categories';
 import { CategoryIcon } from './CategoryIcon';
 import { InteractiveParticleCanvas } from './InteractiveParticleCanvas';
 
+import { supabaseSignUp, supabaseSignIn } from '../services/supabaseService';
+import { isSupabaseConfigured } from '../lib/supabase';
+
 interface AuthScreenProps {
   onLogin: (user: UserProfile, isNewRegistration?: boolean) => void;
   theme: 'light' | 'dark';
@@ -81,7 +84,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   ]);
   const [bio, setBio] = useState('Apaixonado por música ao vivo, cinema autoral e boas leituras.');
   const [activeVibeIndex, setActiveVibeIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const glowRef = React.useRef<HTMLDivElement>(null);
+  const hasSupabase = isSupabaseConfigured();
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (glowRef.current) {
@@ -104,23 +110,54 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email || !password) return;
 
-    const finalName = name.trim() || email.split('@')[0] || 'Viajante Cultural';
-    const isNew = authMode === 'register';
-    const user: UserProfile = {
-      id: `user-${Date.now()}`,
-      name: finalName,
-      email: email.trim(),
-      avatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80`,
-      bio: bio.trim(),
-      favoriteCategories: selectedInterests,
-      createdAt: Date.now(),
-      isPremium: finalName === 'Leonardo Estivalet' && password === 'leo1406'
-    };
-    onLogin(user, isNew);
+    setErrorMessage(null);
+    setIsLoading(true);
+
+    try {
+      if (authMode === 'register') {
+        const { user, error } = await supabaseSignUp(
+          name,
+          email,
+          password,
+          selectedInterests,
+          bio
+        );
+
+        if (error) {
+          setErrorMessage(error);
+          setIsLoading(false);
+          return;
+        }
+
+        if (user) {
+          onLogin(user, true);
+        }
+      } else {
+        const { user, error } = await supabaseSignIn(email, password);
+
+        if (error) {
+          setErrorMessage(
+            error.includes('Invalid login credentials')
+              ? 'E-mail ou senha incorretos. Verifique suas credenciais.'
+              : error
+          );
+          setIsLoading(false);
+          return;
+        }
+
+        if (user) {
+          onLogin(user, false);
+        }
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Ocorreu um erro ao autenticar.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Quick Login as Administrator Leonardo Estivalet
@@ -317,6 +354,21 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 ? 'bg-stone-900/95 border-stone-800'
                 : 'bg-white/95 border-stone-200/80 backdrop-blur-md'
                 }`}>
+                {/* Database Connection Status Pill */}
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  {hasSupabase ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Supabase PostgreSQL Conectado</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-500/10 border border-stone-400/20 text-stone-500 dark:text-stone-400 text-[11px] font-semibold" title="Adicione suas chaves no .env para ativar a nuvem Supabase">
+                      <span className="w-2 h-2 rounded-full bg-amber-400" />
+                      <span>Armazenamento Local Ativo (Configure .env para Supabase)</span>
+                    </span>
+                  )}
+                </div>
+
                 {/* Header / Intro */}
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/20 text-amber-700 dark:text-amber-300 text-xs font-bold uppercase tracking-wider mb-3 border border-amber-400/30">
@@ -333,7 +385,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   </p>
                 </div>
 
-                {/* Administrator Master Access Pill */}
+                {/* Error Banner */}
+                {errorMessage && (
+                  <div className="mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-medium flex items-center gap-2 animate-in fade-in">
+                    <span>⚠️</span>
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
 
                 {/* Mode Switcher: Primeiro Acesso vs Entrar */}
                 <div className={`flex items-center p-1 rounded-2xl mb-6 ${theme === 'dark' ? 'bg-stone-950' : 'bg-stone-100'
@@ -343,6 +401,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                     id="tab-primeiro-acesso"
                     onClick={() => {
                       setAuthMode('register');
+                      setErrorMessage(null);
                       setName('');
                       setEmail('');
                       setPassword('');
@@ -361,9 +420,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                     id="tab-entrar"
                     onClick={() => {
                       setAuthMode('login');
-                      //setName('Leonardo Estivalet');
-                      //setEmail('leo.estivalet@gmail.com');
-                      //setPassword('Leo1406');
+                      setErrorMessage(null);
                     }}
                     className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${authMode === 'login'
                       ? theme === 'dark'
@@ -392,6 +449,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           placeholder="Ex: João da Silva"
+                          disabled={isLoading}
                           className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm focus:outline-none transition-all ${theme === 'dark'
                             ? 'bg-stone-950 border-stone-800 text-white focus:border-amber-400'
                             : 'bg-white border-stone-300 text-stone-900 focus:border-stone-900'
@@ -414,6 +472,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Ex: João@gmail.com"
+                        disabled={isLoading}
                         className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm focus:outline-none transition-all ${theme === 'dark'
                           ? 'bg-stone-950 border-stone-800 text-white focus:border-amber-400'
                           : 'bg-white border-stone-300 text-stone-900 focus:border-stone-900'
@@ -435,6 +494,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Digite sua senha"
+                        disabled={isLoading}
                         className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm focus:outline-none transition-all ${theme === 'dark'
                           ? 'bg-stone-950 border-stone-800 text-white focus:border-amber-400'
                           : 'bg-white border-stone-300 text-stone-900 focus:border-stone-900'
@@ -458,6 +518,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                               key={catKey}
                               type="button"
                               onClick={() => toggleInterest(catKey)}
+                              disabled={isLoading}
                               className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-medium text-left transition-all cursor-pointer ${isSelected
                                 ? theme === 'dark'
                                   ? 'bg-amber-400/20 border-amber-400 text-amber-300'
@@ -481,13 +542,23 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   <button
                     type="submit"
                     id="btn-submit-auth"
-                    className="w-full py-3 rounded-2xl bg-stone-900 dark:bg-amber-400 hover:bg-stone-800 dark:hover:bg-amber-300 text-amber-300 dark:text-stone-950 text-sm font-bold shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 mt-2"
+                    disabled={isLoading}
+                    className={`w-full py-3 rounded-2xl bg-stone-900 dark:bg-amber-400 hover:bg-stone-800 dark:hover:bg-amber-300 text-amber-300 dark:text-stone-950 text-sm font-bold shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 mt-2 ${
+                      isLoading ? 'opacity-70 cursor-not-allowed' : ''
+                    }`}
                   >
-                    <span>{authMode === 'register' ? 'Criar Passaporte e Entrar' : 'Acessar Atlas Cultural'}</span>
-                    <ArrowRight className="w-4 h-4" />
+                    {isLoading ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-amber-300 dark:border-stone-950 border-t-transparent rounded-full animate-spin" />
+                        <span>{authMode === 'register' ? 'Criando Passaporte...' : 'Entrando...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{authMode === 'register' ? 'Criar Passaporte e Entrar' : 'Acessar Atlas Cultural'}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
-
-
                 </form>
               </div>
             </div>

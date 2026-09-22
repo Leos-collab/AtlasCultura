@@ -20,13 +20,19 @@ interface WishlistViewProps {
   onMarkAsCompleted: (experience: CulturalExperience) => void;
   onRemoveWishlistItem: (id: string) => void;
   onOpenAddModal: () => void;
+  isPremium?: boolean;
+  totalCompletedCount?: number;
+  onGoToPlans?: () => void;
 }
 
 export const WishlistView: React.FC<WishlistViewProps> = ({
   wishlist,
   onMarkAsCompleted,
   onRemoveWishlistItem,
-  onOpenAddModal
+  onOpenAddModal,
+  isPremium = false,
+  totalCompletedCount = 0,
+  onGoToPlans
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<ExperienceCategory | 'all'>('all');
 
@@ -36,6 +42,10 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
   });
 
   const handleCompleteWithCelebration = (item: CulturalExperience) => {
+    if (!isPremium && totalCompletedCount >= 5) {
+      onMarkAsCompleted(item); // Will trigger paywall modal in App.tsx / AddExperienceModal
+      return;
+    }
     confetti({
       particleCount: 70,
       spread: 60,

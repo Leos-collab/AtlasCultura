@@ -369,7 +369,9 @@ export const AddExperienceModal: React.FC<AddExperienceModalProps> = ({
   };
 
   const FREE_LIMIT = 5;
-  const isAtFreeLimit = !isPremium && !initialData && totalExperienceCount >= FREE_LIMIT;
+  // Editing an existing completed memory is allowed; creating a new one or converting a wishlist item to completed respects the 5 limit
+  const isEditingExistingCompleted = Boolean(initialData?.id && initialData?.status === 'completed' && initialMode !== 'wishlist');
+  const isAtFreeLimit = !isPremium && status === 'completed' && !isEditingExistingCompleted && totalExperienceCount >= FREE_LIMIT;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs overflow-y-auto">
